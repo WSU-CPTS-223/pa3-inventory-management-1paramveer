@@ -1,7 +1,11 @@
 #include <iostream>
 #include <string>
+#include <sstream>
+#include "InventoryManager.h"
 
 using namespace std;
+
+InventoryManager *inventoryManager = nullptr;
 
 void printHelp()
 {
@@ -16,7 +20,7 @@ bool validCommand(string line)
 {
     return (line == ":help") ||
            (line.rfind("find", 0) == 0) ||
-           (line.rfind("listInventory") == 0);
+           (line.rfind("listInventory", 0) == 0);
 }
 
 void evalCommand(string line)
@@ -25,17 +29,44 @@ void evalCommand(string line)
     {
         printHelp();
     }
-    // if line starts with find
     else if (line.rfind("find", 0) == 0)
     {
-        // Look up the appropriate datastructure to find if the inventory exist
-        cout << "YET TO IMPLEMENT!" << endl;
+        stringstream ss(line);
+        string cmd, inventoryId;
+        ss >> cmd >> inventoryId;
+
+        if (inventoryId.empty())
+        {
+            cout << "Usage: find <inventoryid>" << endl;
+        }
+        else
+        {
+            inventoryManager->findProduct(inventoryId);
+        }
     }
-    // if line starts with listInventory
-    else if (line.rfind("listInventory") == 0)
+    else if (line.rfind("listInventory", 0) == 0)
     {
-        // Look up the appropriate datastructure to find all inventory belonging to a specific category
-        cout << "YET TO IMPLEMENT!" << endl;
+        stringstream ss(line);
+        string cmd, category;
+        ss >> cmd;
+        getline(ss, category);
+
+        int start = category.find_first_not_of(" \t");
+        int end = category.find_last_not_of(" \t");
+
+        if (start != string::npos && end != string::npos)
+        {
+            category = category.substr(start, end - start + 1);
+        }
+
+        if (category.empty())
+        {
+            cout << "Usage: listInventory <category_string>" << endl;
+        }
+        else
+        {
+            inventoryManager->listInventory(category);
+        }
     }
 }
 
@@ -43,17 +74,21 @@ void bootStrap()
 {
     cout << "\n Welcome to Amazon Inventory Query System" << endl;
     cout << " enter :quit to exit. or :help to list supported commands." << endl;
+
+    inventoryManager = new InventoryManager();
+
+    cout << "\nLoading inventory data..." << endl;
+    inventoryManager->loadFromCSV("files/marketing_sample_for_amazon_com-ecommerce__20200101_20200131__10k_data-1.csv");
+
     cout << "\n> ";
-    // TODO: Do all your bootstrap operations here
-    // example: reading from CSV and initializing the data structures
-    // Don't dump all code into this single function
-    // use proper programming practices
 }
 
 int main(int argc, char const *argv[])
 {
     string line;
+
     bootStrap();
+
     while (getline(cin, line) && line != ":quit")
     {
         if (validCommand(line))
@@ -65,6 +100,11 @@ int main(int argc, char const *argv[])
             cout << "Command not supported. Enter :help for list of supported commands" << endl;
         }
         cout << "> ";
+
+        line = ":quit";
     }
+
+    // calls destructor
+    delete inventoryManager;
     return 0;
 }
